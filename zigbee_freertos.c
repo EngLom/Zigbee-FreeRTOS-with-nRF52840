@@ -329,9 +329,9 @@ static void huminity_measurement_task(void *pvParam)
     /* Just to show that we are NOT in zigbee_main_task context */
     ASSERT(xTaskGetCurrentTaskHandle() != m_zigbee_main_task_handle);
 
-    SHT3x_read_humidity(&temperature_values);
+    SHT3x_read_humidity(&humidity_values);
    
-    /* Get new temperature measured value */
+    /* Get new humidity measured value */
     zb_int16_t new_temp_value = = humidity_values;
     
     vTaskSuspendAll();
