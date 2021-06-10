@@ -96,8 +96,8 @@ APP_TIMER_DEF(temperature_measurement_timer);
 static update_temperature_measurement_ctx_t m_update_temperature_measurement_ctx;
 
 
-
-/**@brief  Task function responsible for led blinking. param  pvParameter     FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
+/**@brief  Task function responsible for led blinking. param  pvParameter     
+FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
 bool led_toggle_task(void *pvParameter)
 {
     UNUSED_PARAMETER(pvParameter);
@@ -168,17 +168,20 @@ bool zboss_signal_handler(zb_uint8_t param)
              * zigbee communication being not the only task to be performed by node.
              */
             break;
+        
         case ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY:
             if (status != RET_OK)
             {
                 NRF_LOG_WARNING("Production config is not present or invalid");
             }
             break;
+        
         default:
             /* Unhandled signal. For more information see: zb_zdo_app_signal_type_e and zb_ret_e */
             NRF_LOG_INFO("Unhandled signal %d. Status: %d", sig, status);
             break;
     }
+  
     if (param)
     {
         ZB_FREE_BUF_BY_REF(param);
@@ -194,6 +197,7 @@ bool zigbee_main_task(void *pvParameter)
     /* Start Zigbee Stack. */
     zb_err_code = zboss_start();
         if (err_code != NRF_SUCCESS) return err_code;
+  
     while (true)
     {
         if (xSemaphoreTakeRecursive(m_zigbee_main_task_mutex, 5) == pdTRUE)
@@ -328,13 +332,12 @@ static void pressure_measurement_task(void *pvParam)
         zb_int16_t      new_pres_value;
 
         /* Get new pressure measured value */
-       // new_pres_value = (zb_int16_t)sensorsim_measure(&m_pressure_sim_state, &m_pressure_sim_cfg);
+        /* new_pres_value = (zb_int16_t)sensorsim_measure(&m_pressure_sim_state, &m_pressure_sim_cfg); */
 
         if (xSemaphoreTakeRecursive(m_zigbee_main_task_mutex, 1000U) == pdTRUE)
         {
             /* Set new pressure value as zcl attribute
-             * NOTE this is not thread-safe and locking is required
-             */
+            /* NOTE this is not thread-safe and locking is required */
             zcl_status = zb_zcl_set_attr_val(MULTI_SENSOR_ENDPOINT,
                                              ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT,
                                              ZB_ZCL_CLUSTER_SERVER_ROLE,
@@ -348,12 +351,13 @@ static void pressure_measurement_task(void *pvParam)
                 NRF_LOG_INFO("Set pressure value fail. zcl_status: %d", zcl_status);
             }
         }
+      
         else
         {
             NRF_LOG_ERROR("Unable to take zigbee_task_mutex from pressure_measurement_task");
         }
 
-        /* Let the task sleep for some time, consider it as pressure sample period  */
+        /* Let the task sleep for some time, consider it as pressure sample period */
         vTaskDelayUntil(&last_update_wake_timestamp, pdMS_TO_TICKS(1000U));
     }
 }
@@ -366,8 +370,7 @@ void vApplicationIdleHook(void)
 }
 
 /**@brief  FreeRTOS hook function called when stack overflow has been detected
- * @note   See FreeRTOS API
- */
+ * @note   See FreeRTOS API*/
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     NRF_LOG_ERROR("vApplicationStackOverflowHook(%x,\"%s\")", xTask, pcTaskName);
@@ -375,7 +378,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 }
 
 /**@brief Function which tries to sleep down the MCU
- * @note    This function overrides implementation found in zb_nrf52840_common.c*/
+/**@note  This function overrides implementation found in zb_nrf52840_common.c*/
 zb_void_t zb_osif_go_idle(zb_void_t)
 {
     /* Intentionally empty implementation */
