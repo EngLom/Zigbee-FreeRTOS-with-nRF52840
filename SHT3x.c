@@ -13,13 +13,16 @@
 
 /*TWI instance ID*/
 #define TWI_INSTANCE_ID 0
+
 /*SHT3x address*/
 #define SHT3x_ADDR 0x44 
+
 /* Single shot sensor read command */
 #define CMD_READ_SINGLE 0x2C06
 
 /*TWI instance*/
 static const nrf_drv_twi_t twi_sht3x = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
+
 /*Buffer for samples read from temperature sensor SHT3x*/
 static uint8_t rx_buf[6];
 
@@ -76,8 +79,10 @@ void SHT3x_read_temperature(temp_values_t *temperature)
 
         cmd[0] = (uint8_t)(CMD_READ_SINGLE >> 8);
         cmd[1] = (uint8_t)(CMD_READ_SINGLE);
+	
       /* Send command one byte at a time to set single shot reading */
       nrf_drv_twi_tx(&twi_sht3x, SHT3x_ADDR, cmd, sizeof(cmd), false);
+	
       /* Read received sensor data into buffer */
       nrf_drv_twi_rx(&twi_sht3x, SHT3x_ADDR, rx_buf, sizeof(rx_buf)) ;
 
@@ -93,8 +98,10 @@ void SHT3x_read_humidity(humi_values_t *humidity)
 
         cmd[0] = (uint8_t)(CMD_READ_SINGLE >> 8);
         cmd[1] = (uint8_t)(CMD_READ_SINGLE);
+	
       /* Send command one byte at a time to set single shot reading */
       nrf_drv_twi_tx(&twi_sht3x, SHT3x_ADDR, cmd, sizeof(cmd), false);
+	
       /* Read received sensor data into buffer */
       nrf_drv_twi_rx(&twi_sht3x, SHT3x_ADDR, rx_buf, sizeof(rx_buf)) ;
 
@@ -103,8 +110,4 @@ void SHT3x_read_humidity(humi_values_t *humidity)
        uint16_t humi_int = rx_buf[0] << 8 | rx_buf[1];
       *humidity = (float)(100 * humi_int)/(65535);
 }
-
-
-
-   
 /*lint --flb "Leave library region" */
