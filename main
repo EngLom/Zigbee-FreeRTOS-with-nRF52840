@@ -1,0 +1,91 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+
+#include "nrf_temp.h"
+#include "nrf.h"
+#include "app_error.h"
+
+#include "zboss_api.h"
+#include "zb_mem_config_med.h"
+#include "zb_error_handler.h"
+#include "zigbee_helpers.h"
+#include "app_timer.h"
+#include "bsp.h"
+#include "boards.h"
+#include "sensorsim.h"
+
+#include "nrf_assert.h"
+#include "nrf_drv_clock.h"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
+
+#include "zb_multi_sensor.h"
+#include "SHT3x.h"
+#include "nrf_delay.h"
+#include "zigbee_freertos.h"
+#include "nrf_drv_twi.h"
+
+#if !defined ZB_ED_ROLE
+#error Define ZB_ED_ROLE to compile End Device source code.
+#endif
+
+static void log_init(void)
+{
+    ret_code_t err_code = NRF_LOG_INIT(NULL);
+    APP_ERROR_CHECK(err_code);
+
+    NRF_LOG_DEFAULT_BACKENDS_INIT();
+}
+
+static void zigbee_freertos_init(void)
+{
+    uint32_t err_code = freertos_init();
+    APP_ERROR_CHECK(err_code);
+}
+
+static void twi_init(void)
+{
+    uint32_t err_code = SHT3x_twi_init();
+    APP_ERROR_CHECK(err_code);
+}
+
+static void zigbee_xTaskCreate(void)
+{
+   uint32_t err_code = xTaskCreate_t();
+    APP_ERROR_CHECK(err_code);
+}
+
+void zboss_signal_handler(zb_uint8_t param);
+
+void zigbee_main_task(void *pvParameter);
+
+int main(void)
+{
+    log_init();
+    twi_init();
+    NRF_LOG_INFO("Application start");
+    NRF_LOG_FLUSH();
+    zigbee_freertos_init();
+
+    ZB_init();   
+    multi_sensor_clusters_attr_init();
+    zigbee_xTaskCreate(); 
+   
+    /* Start FreeRTOS scheduler. */
+    NRF_LOG_INFO("Starting FreeRTOS scheduler");
+    NRF_LOG_FLUSH();
+    vTaskStartScheduler();
+    while (true)
+    {
+         /*temp_init();/* FreeRTOS should not be here... FreeRTOS goes back to the start of stack
+         /* in vTaskStartScheduler function. */
+    }
+}
+
