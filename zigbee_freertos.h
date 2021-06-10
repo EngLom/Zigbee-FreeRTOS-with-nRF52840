@@ -32,6 +32,11 @@ typedef struct
 {
     zb_int16_t  measured_value ;
 } update_temperature_measurement_ctx_t;
+    
+    typedef struct
+{
+    zb_int16_t  measured_value ;
+} update_humidity_measurement_ctx_t;
 
 bool led_toggle_task(void *pvParameter);
 
@@ -46,6 +51,10 @@ void multi_sensor_clusters_attr_init(void);
 void update_temperature_measurement_cb(zb_uint8_t param);
 
 void temperature_measurement_timer_handler(void * context);
+    
+void update_humiditye_measurement_cb(zb_uint8_t param);
+
+void humidity_measurement_timer_handler(void * context);
 
 void vApplicationIdleHook(void);
     
