@@ -321,8 +321,37 @@ void temperature_measurement_timer_handler(void * context)
     }
 }
 
-/* brief  Task performing huminity measurement.*/
-static void huminity_measurement_task(void *pvParam)
+static void update_humidity_measurement_cb(zb_uint8_t param)
+{
+    UNUSED_PARAMETER(param);
+
+    /* Just to show that we are in zigbee_main_task context, and locking is not required */
+    ASSERT(xTaskGetCurrentTaskHandle() == m_zigbee_main_task_handle);
+
+    zb_int16_t new_humi_value;
+
+    vTaskSuspendAll();
+    new_humi_value = m_update_humidity_measurement_ctx.measured_value;
+    UNUSED_RETURN_VALUE(xTaskResumeAll());
+
+    zb_zcl_status_t zcl_status;
+
+    /* Note: As we are in zigbee_main_task context it is perfectly correct to update without mutex locking */
+    zcl_status = zb_zcl_set_attr_val(MULTI_SENSOR_ENDPOINT,
+                                             ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
+                                             ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                             ZB_ZCL_ATTR_PRES_MEASUREMENT_VALUE_ID,
+                                             (zb_uint8_t *)&new_humi_value,
+                                             ZB_FALSE);
+
+    if (zcl_status != ZB_ZCL_STATUS_SUCCESS)
+    {
+        NRF_LOG_INFO("Set humidity value fail. zcl_status: %d", zcl_status);
+    }
+}
+
+/* brief Function for handling nrf app timer*/
+static void humidity_measurement_timer_handler(void * context)
 {
     UNUSED_PARAMETER(context);
 
@@ -331,21 +360,19 @@ static void huminity_measurement_task(void *pvParam)
 
     SHT3x_read_humidity(&humidity_values);
    
-    /* Get new humidity measured value */
-    zb_int16_t new_temp_value = = humidity_values;
+    /* Get new temperature measured value */
+    zb_int16_t new_temp_value = humidity_values;
     
     vTaskSuspendAll();
-     m_update_humidity_measurement_ctx.measured_value = new_humi_value;
-     NRF_LOG_INFO("New humidity: %d", m_update_humidity_measurement_ctx.measured_value);
+    m_update_humidity_measurement_ctx.measured_value = new_temp_value;
+    NRF_LOG_INFO("New humidity: %d", m_update_humidity_measurement_ctx.measured_value);
     UNUSED_RETURN_VALUE(xTaskResumeAll());
 
-    zb_ret_t zb_ret;
-
     /* Note: ZB_SCHEDULE_CALLBACK is thread safe by exception, conversely to most ZBOSS API */
-    zb_ret = ZB_SCHEDULE_CALLBACK(update_humidity_measurement_cb, 0U);
+    zb_ret_t zb_ret = ZB_SCHEDULE_CALLBACK(update_humidity_measurement_cb, 0U);
     if (zb_ret != RET_OK)
     {
-        NRF_LOG_ERROR("Humidity sample lost.");
+        NRF_LOG_ERROR("humidity sample lost.");
     }
 }
          
