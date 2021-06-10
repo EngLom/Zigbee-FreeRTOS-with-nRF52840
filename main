@@ -84,7 +84,7 @@ int main(void)
     vTaskStartScheduler();
     while (true)
     {
-         /*temp_init();/* FreeRTOS should not be here... FreeRTOS goes back to the start of stack
+         /* FreeRTOS should not be here... FreeRTOS goes back to the start of stack
          /* in vTaskStartScheduler function. */
     }
 }
