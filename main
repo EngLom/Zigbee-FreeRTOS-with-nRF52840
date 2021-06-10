@@ -62,7 +62,7 @@ static void twi_init(void)
 /* 
 static void zigbee_xTaskCreate(void)
 {
-   uint32_t err_code = xTaskCreate_t();
+   uint32_t err_code = xTaskCreate();
     APP_ERROR_CHECK(err_code);
 }
 
