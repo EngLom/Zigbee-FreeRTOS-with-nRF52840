@@ -113,7 +113,8 @@ APP_TIMER_DEF(temperature_measurement_timer);
 
 APP_TIMER_DEF(humidity_measurement_timer);
 
-/**@brief  Task function responsible for led blinking. param  pvParameter     FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
+/*brief  Task function responsible for led blinking. param  pvParameter     
+/*FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
 static void led_toggle_task(void *pvParameter)
 {
     UNUSED_PARAMETER(pvParameter);
@@ -207,8 +208,7 @@ void zboss_signal_handler(zb_uint8_t param)
 
         case ZB_COMMON_SIGNAL_CAN_SLEEP:
             /* When freertos is used zb_sleep_now must not be used, due to
-             * zigbee communication being not the only task to be performed by node.
-             */
+             * zigbee communication being not the only task to be performed by node*/
             break;
         case ZB_ZDO_SIGNAL_PRODUCTION_CONFIG_READY:
             if (status != RET_OK)
@@ -416,8 +416,8 @@ void vApplicationIdleHook(void)
     __WFE();
 }
 
-/**@brief  FreeRTOS hook function called when stack overflow has been detected
- * @note   See FreeRTOS API*/
+/*brief  FreeRTOS hook function called when stack overflow has been detected*/
+/*note   See FreeRTOS API*/
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     NRF_LOG_ERROR("vApplicationStackOverflowHook(%x,\"%s\")", xTask, pcTaskName);
@@ -425,7 +425,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 }
 
 /*brief Function which tries to sleep down the MCU
-/*note    This function overrides implementation found in zb_nrf52840_common.c*/
+/*note  This function overrides implementation found in zb_nrf52840_common.c*/
 zb_void_t zb_osif_go_idle(zb_void_t)
 {
     /* Intentionally empty implementation */
@@ -448,13 +448,6 @@ bool xTaskCreate_t(void)
     /* Create task for LED0 blinking with priority set to 2 */
     rtos_result = xTaskCreate(led_toggle_task, "LED", LED_TOGGLE_TASK_STACK_SIZE,
             NULL, LED_TOGGLE_TASK_PRIORITY, &m_led_toggle_task_handle);
-    if (rtos_result != pdPASS)
-    {
-        APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
-    }
-
-   rtos_result = xTaskCreate(humidity_measurement_task, "PM", HUMIDITY_MEASUREMENT_TASK_STACK_SIZE,
-            NULL, HUMIDITY_MEASUREMENT_TASK_PRIORITY, &m_humidity_measurement_task_handle);
     if (rtos_result != pdPASS)
     {
         APP_ERROR_HANDLER(NRF_ERROR_NO_MEM);
