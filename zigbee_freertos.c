@@ -93,10 +93,11 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(multi_sensor_ctx, multi_sensor_ep);
 
 APP_TIMER_DEF(temperature_measurement_timer);
 
+APP_TIMER_DEF(humidity_measurement_timer);
+
 static update_temperature_measurement_ctx_t m_update_temperature_measurement_ctx;
 
-
-
+static update_humidity_measurement_ctx_t m_update_humidity_measurement_ctx;
 
 /* brief  Task function responsible for led blinking. param  pvParameter */    
 /* FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
