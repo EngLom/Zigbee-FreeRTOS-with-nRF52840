@@ -36,6 +36,7 @@
 #error Define ZB_ED_ROLE to compile End Device source code.
 #endif
 
+/* log message */
 static void log_init(void)
 {
     ret_code_t err_code = NRF_LOG_INIT(NULL);
@@ -44,26 +45,31 @@ static void log_init(void)
     NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
+/* zigbee using freertos scheduler*/
 static void zigbee_freertos_init(void)
 {
     uint32_t err_code = freertos_init();
     APP_ERROR_CHECK(err_code);
 }
 
+/* read data from senor via I2C*/
 static void twi_init(void)
 {
     uint32_t err_code = SHT3x_twi_init();
     APP_ERROR_CHECK(err_code);
 }
 
+/* 
 static void zigbee_xTaskCreate(void)
 {
    uint32_t err_code = xTaskCreate_t();
     APP_ERROR_CHECK(err_code);
 }
 
+/* 
 void zboss_signal_handler(zb_uint8_t param);
 
+/* 
 void zigbee_main_task(void *pvParameter);
 
 int main(void)
