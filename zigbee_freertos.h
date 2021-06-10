@@ -12,7 +12,7 @@ extern "C"
 
 #if (NRF_LOG_ENABLED && NRF_LOG_DEFERRED)
 /**@brief Task function responsible for deferred log processing.
- * @param pvParameter     FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
+/**@param pvParameter     FreeRTOS task parameter, unused here, required by FreeRTOS API.*/
 static void logger_task(void *pvParameter)
 {
     UNUSED_PARAMETER(pvParameter);
@@ -48,11 +48,7 @@ void update_temperature_measurement_cb(zb_uint8_t param);
 void temperature_measurement_timer_handler(void * context);
 
 void vApplicationIdleHook(void);
-
-
-
-
-
+    
 #ifdef __cplusplus
 }
 #endif
