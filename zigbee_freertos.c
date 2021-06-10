@@ -35,9 +35,9 @@
 static TaskHandle_t m_zigbee_main_task_handle;
 static SemaphoreHandle_t m_zigbee_main_task_mutex;
 
-#define PRESSURE_MEASUREMENT_TASK_STACK_SIZE    (configMINIMAL_STACK_SIZE + 64U)
-#define PRESSURE_MEASUREMENT_TASK_PRIORITY      (tskIDLE_PRIORITY + 2U)
-static TaskHandle_t m_pressure_measurement_task_handle;
+#define HUMIDITY_MEASUREMENT_TASK_STACK_SIZE    (configMINIMAL_STACK_SIZE + 64U)
+#define HUMIDITY_MEASUREMENT_TASK_PRIORITY      (tskIDLE_PRIORITY + 2U)
+static TaskHandle_t m_huminity_measurement_task_handle;
 
 #define LED_TOGGLE_TASK_STACK_SIZE        (configMINIMAL_STACK_SIZE + 64U)        
 #define LED_TOGGLE_TASK_PRIORITY          (tskIDLE_PRIORITY + 2U)
@@ -73,17 +73,17 @@ ZB_ZCL_DECLARE_TEMP_MEASUREMENT_ATTRIB_LIST(temperature_attr_list,
                                             &m_dev_ctx.temp_attr.max_measure_value, 
                                             &m_dev_ctx.temp_attr.tolerance);
 
-ZB_ZCL_DECLARE_PRES_MEASUREMENT_ATTRIB_LIST(pressure_attr_list, 
-                                            &m_dev_ctx.pres_attr.measure_value, 
-                                            &m_dev_ctx.pres_attr.min_measure_value, 
-                                            &m_dev_ctx.pres_attr.max_measure_value, 
-                                            &m_dev_ctx.pres_attr.tolerance);
+ZB_ZCL_DECLARE_HUMI_MEASUREMENT_ATTRIB_LIST(humidity_attr_list, 
+                                            &m_dev_ctx.humi_attr.measure_value, 
+                                            &m_dev_ctx.humi_attr.min_measure_value, 
+                                            &m_dev_ctx.humi_attr.max_measure_value, 
+                                            &m_dev_ctx.humi_attr.tolerance);
 
 ZB_DECLARE_MULTI_SENSOR_CLUSTER_LIST(multi_sensor_clusters,
                                      basic_attr_list,
                                      identify_attr_list,
                                      temperature_attr_list,
-                                     pressure_attr_list);
+                                     humidity_attr_list);
 
 ZB_ZCL_DECLARE_MULTI_SENSOR_EP(multi_sensor_ep,
                                MULTI_SENSOR_ENDPOINT,
@@ -94,6 +94,8 @@ ZBOSS_DECLARE_DEVICE_CTX_1_EP(multi_sensor_ctx, multi_sensor_ep);
 APP_TIMER_DEF(temperature_measurement_timer);
 
 static update_temperature_measurement_ctx_t m_update_temperature_measurement_ctx;
+
+
 
 
 /* brief  Task function responsible for led blinking. param  pvParameter */    
@@ -254,11 +256,11 @@ void multi_sensor_clusters_attr_init(void)
     m_dev_ctx.temp_attr.max_measure_value        = ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_MAX_VALUE;
     m_dev_ctx.temp_attr.tolerance                = ZB_ZCL_ATTR_TEMP_MEASUREMENT_TOLERANCE_MAX_VALUE;
 
-    /* Pressure measurement cluster attributes data */
-    m_dev_ctx.pres_attr.measure_value            = ZB_ZCL_ATTR_PRES_MEASUREMENT_VALUE_UNKNOWN;
-    m_dev_ctx.pres_attr.min_measure_value        = ZB_ZCL_ATTR_PRES_MEASUREMENT_MIN_VALUE_MIN_VALUE;
-    m_dev_ctx.pres_attr.max_measure_value        = ZB_ZCL_ATTR_PRES_MEASUREMENT_MAX_VALUE_MAX_VALUE;
-    m_dev_ctx.pres_attr.tolerance                = ZB_ZCL_ATTR_PRES_MEASUREMENT_TOLERANCE_MAX_VALUE;
+    /* Huminity measurement cluster attributes data */
+    m_dev_ctx.humi_attr.measure_value            = ZB_ZCL_ATTR_HUMI_MEASUREMENT_VALUE_UNKNOWN;
+    m_dev_ctx.humi_attr.min_measure_value        = ZB_ZCL_ATTR_HUMI_MEASUREMENT_MIN_VALUE_MIN_VALUE;
+    m_dev_ctx.humi_attr.max_measure_value        = ZB_ZCL_ATTR_HUMI_MEASUREMENT_MAX_VALUE_MAX_VALUE;
+    m_dev_ctx.humi_attr.tolerance                = ZB_ZCL_ATTR_HUMI_MEASUREMENT_TOLERANCE_MAX_VALUE;
 }
 
 /* brief Callback scheduled from @ref temperature_measurement_timer_handler*/
@@ -319,52 +321,34 @@ void temperature_measurement_timer_handler(void * context)
     }
 }
 
-/* brief  Task performing pressure measurement.*/
-static void pressure_measurement_task(void *pvParam)
+/* brief  Task performing huminity measurement.*/
+static void huminity_measurement_task(void *pvParam)
 {
+    UNUSED_PARAMETER(context);
+
     /* Just to show that we are NOT in zigbee_main_task context */
     ASSERT(xTaskGetCurrentTaskHandle() != m_zigbee_main_task_handle);
 
-    NRF_LOG_INFO("The pressure_measurement_task started.");
+    SHT3x_read_humidity(&temperature_values);
+   
+    /* Get new temperature measured value */
+    zb_int16_t new_temp_value = = humidity_values;
+    
+    vTaskSuspendAll();
+     m_update_humidity_measurement_ctx.measured_value = new_humi_value;
+     NRF_LOG_INFO("New humidity: %d", m_update_humidity_measurement_ctx.measured_value);
+    UNUSED_RETURN_VALUE(xTaskResumeAll());
 
-    TickType_t  last_update_wake_timestamp;
-    last_update_wake_timestamp = xTaskGetTickCount();
+    zb_ret_t zb_ret;
 
-    while (true)
+    /* Note: ZB_SCHEDULE_CALLBACK is thread safe by exception, conversely to most ZBOSS API */
+    zb_ret = ZB_SCHEDULE_CALLBACK(update_humidity_measurement_cb, 0U);
+    if (zb_ret != RET_OK)
     {
-        zb_zcl_status_t zcl_status;
-        zb_int16_t      new_pres_value;
-
-        /* Get new pressure measured value */
-        /* new_pres_value = (zb_int16_t)sensorsim_measure(&m_pressure_sim_state, &m_pressure_sim_cfg); */
-
-        if (xSemaphoreTakeRecursive(m_zigbee_main_task_mutex, 1000U) == pdTRUE)
-        {
-            /* Set new pressure value as zcl attribute
-            /* NOTE this is not thread-safe and locking is required */
-            zcl_status = zb_zcl_set_attr_val(MULTI_SENSOR_ENDPOINT,
-                                             ZB_ZCL_CLUSTER_ID_PRESSURE_MEASUREMENT,
-                                             ZB_ZCL_CLUSTER_SERVER_ROLE,
-                                             ZB_ZCL_ATTR_PRES_MEASUREMENT_VALUE_ID,
-                                             (zb_uint8_t *)&new_pres_value,
-                                             ZB_FALSE);
-            UNUSED_RETURN_VALUE(xSemaphoreGiveRecursive(m_zigbee_main_task_mutex));
-
-            if (zcl_status != ZB_ZCL_STATUS_SUCCESS)
-            {
-                NRF_LOG_INFO("Set pressure value fail. zcl_status: %d", zcl_status);
-            }
-        }
-      
-        else
-        {
-            NRF_LOG_ERROR("Unable to take zigbee_task_mutex from pressure_measurement_task");
-        }
-
-        /* Let the task sleep for some time, consider it as pressure sample period */
-        vTaskDelayUntil(&last_update_wake_timestamp, pdMS_TO_TICKS(1000U));
+        NRF_LOG_ERROR("Humidity sample lost.");
     }
 }
+         
 
 /* brief FreeRTOS hook function called from idle task */
 void vApplicationIdleHook(void)
